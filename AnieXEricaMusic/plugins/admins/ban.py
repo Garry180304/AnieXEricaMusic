@@ -312,3 +312,27 @@ async def unmute_command_handler(client, message):
         
     msg_text = await unmute_user(user_id, first_name, admin_id, admin_name, chat_id)
     await message.reply_text(msg_text)
+
+@app.on_message(filters.command(["banlist"]))
+async def banlist_command_handler(client, message):
+    chat = message.chat
+    chat_id = chat.id
+    admin_id = message.from_user.id
+    admin_name = message.from_user.first_name
+    member = await chat.get_member(admin_id)
+    if member.status not in [enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
+        return await message.reply_text("You don't have permission to access the ban list.")
+
+    try:
+        banned_users = await app.get_chat_banned_members(chat_id)
+    except BadRequest as e:
+        return await message.reply_text(f"Failed to fetch ban list: {e}")
+
+    if not banned_users:
+        return await message.reply_text("There are no banned users in this chat.")
+
+    msg_text = "List of banned users:\n\n"
+    for user in banned_users:
+        msg_text += f"- {user.user.first_name} ({user.user.id})\n"
+
+    await message.reply_text(msg_text)
