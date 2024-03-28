@@ -13,18 +13,15 @@ from pyrogram.errors.exceptions.bad_request_400 import (
 import datetime
 from AnieXEricaMusic import app
 
-
-
-
+# Function to format user mention
 def mention(user, name, mention=True):
-    if mention == True:
+    if mention:
         link = f"[{name}](tg://openmessage?user_id={user})"
     else:
         link = f"[{name}](https://t.me/{user})"
     return link
 
-
-
+# Function to get user ID from username
 async def get_userid_from_username(username):
     try:
         user = await app.get_users(username)
@@ -34,28 +31,25 @@ async def get_userid_from_username(username):
     user_obj = [user.id, user.first_name]
     return user_obj
 
-
+# Function to ban a user from the chat
 async def ban_user(user_id, first_name, admin_id, admin_name, chat_id, reason, time=None):
+    msg_text = ""  # Initialize msg_text here
+
     try:
         await app.ban_chat_member(chat_id, user_id)
     except ChatAdminRequired:
-        msg_text = "Ban rights? Nah, I'm just here for the digital high-fives 🙌\nGive me ban rights! 😡🥺"
+        msg_text = "Sorry, I don't have permission to ban users. Please grant me ban rights."
         return msg_text, False
     except UserAdminInvalid:
-        msg_text = "I wont ban an admin bruh!!"
+        msg_text = "I can't ban administrators."
         return msg_text, False
     except Exception as e:
-        if user_id == 6711389550:
-            msg_text = "why should i ban myself? sorry but I'm not stupid like you"
-            return msg_text, False
-        
-        msg_text = f"opps!!\n{e}"
+        msg_text = f"Oops! An error occurred: {e}"
         return msg_text, False
 
     user_mention = mention(user_id, first_name)
     admin_mention = mention(admin_id, admin_name)
 
-    msg_text += f""
     msg_text += f"{user_mention} was banned by {admin_mention}\n"
     
     if reason:
@@ -65,16 +59,20 @@ async def ban_user(user_id, first_name, admin_id, admin_name, chat_id, reason, t
 
     return msg_text, True
 
-
+# Function to unban a user from the chat
 async def unban_user(user_id, first_name, admin_id, admin_name, chat_id):
     try:
         await app.unban_chat_member(chat_id, user_id)
     except ChatAdminRequired:
-        msg_text = "Ban rights? Nah, I'm just here for the digital high-fives 🙌\nGive me ban rights! 😡🥺"
-        return msg_text
+        return "Sorry, I don't have permission to unban users. Please grant me unban rights."
     except Exception as e:
-        msg_text = f"opps!!\n{e}"
-        return msg_text
+        return f"Oops! An error occurred: {e}"
+
+    user_mention = mention(user_id, first_name)
+    admin_mention = mention(admin_id, admin_name)
+    
+    msg_text = f"{user_mention} was unbanned by {admin_mention}"
+    return msg_text
 
     user_mention = mention(user_id, first_name)
     admin_mention = mention(admin_id, admin_name)
