@@ -17,7 +17,7 @@ from AnieXEricaMusic import app
 def mention(user_id, name, mention=True):
     if mention:
         if name:
-            link = f"[{name}](tg://openmessage?user_id={user_id})"
+            link = f"{message.from_user.mention}"
         else:
             link = f"[User](tg://openmessage?user_id={user_id})"
     else:
