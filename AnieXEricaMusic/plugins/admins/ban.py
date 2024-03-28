@@ -298,7 +298,7 @@ async def banlist_command_handler(client, message):
         ban_list += f"{admin_mention}: {bans} bans\n"
 
     # Send the ban list as a message
-    await message.reply_text(ban_list, parse_mode="markdown")
+    await message.reply_text(ban_list)
     
     
 
