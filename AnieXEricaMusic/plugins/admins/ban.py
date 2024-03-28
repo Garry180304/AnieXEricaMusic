@@ -125,6 +125,7 @@ async def unmute_user(user_id, first_name, admin_id, admin_name, chat_id):
     msg_text = f"{user_mention} was unmuted by {admin_mention}"
     return msg_text
 
+
 @app.on_message(filters.command(["ban"]))
 async def ban_command_handler(client, message):
     chat = message.chat
@@ -136,22 +137,38 @@ async def ban_command_handler(client, message):
         if member.privileges.can_restrict_members:
             pass
         else:
-            msg_text = "You dont have permission to ban someone"
+            msg_text = "You don't have permission to ban someone"
             return await message.reply_text(msg_text)
     else:
-        msg_text = "You dont have permission to ban someone"
+        msg_text = "You don't have permission to ban someone"
         return await message.reply_text(msg_text)
 
-    # Extract the user ID from the command or reply
+    # Extract the user ID and ban duration from the command
     if len(message.command) > 1:
         if message.reply_to_message:
             user_id = message.reply_to_message.from_user.id
             first_name = message.reply_to_message.from_user.first_name
-            reason = message.text.split(None, 1)[1]
+            time = message.text.split(None, 1)[1]
+
+            try:
+                time_amount = time.split(time[-1])[0]
+                time_amount = int(time_amount)
+            except:
+                return await message.reply_text("Wrong format!!\nFormat: `/ban @user 2d`")
+
+            if time[-1] == "m":
+                ban_duration = datetime.timedelta(minutes=time_amount)
+            elif time[-1] == "h":
+                ban_duration = datetime.timedelta(hours=time_amount)
+            elif time[-1] == "d":
+                ban_duration = datetime.timedelta(days=time_amount)
+            else:
+                return await message.reply_text("Wrong format!!\nFormat:\nm: Minutes\nh: Hours\nd: Days")
         else:
             try:
                 user_id = int(message.command[1])
                 first_name = "User"
+                ban_duration = None
             except:
                 user_obj = await get_userid_from_username(message.command[1])
                 if user_obj == None:
@@ -159,25 +176,34 @@ async def ban_command_handler(client, message):
                 user_id = user_obj[0]
                 first_name = user_obj[1]
 
-            try:
-                reason = message.text.partition(message.command[1])[2]
-            except:
-                reason = None
+                try:
+                    time = message.text.partition(message.command[1])[2]
+                    try:
+                        time_amount = time.split(time[-1])[0]
+                        time_amount = int(time_amount)
+                    except:
+                        return await message.reply_text("Wrong format!!\nFormat: `/ban @user 2d`")
 
-    elif message.reply_to_message:
-        user_id = message.reply_to_message.from_user.id
-        first_name = message.reply_to_message.from_user.first_name
-        reason = None
+                    if time[-1] == "m":
+                        ban_duration = datetime.timedelta(minutes=time_amount)
+                    elif time[-1] == "h":
+                        ban_duration = datetime.timedelta(hours=time_amount)
+                    elif time[-1] == "d":
+                        ban_duration = datetime.timedelta(days=time_amount)
+                    else:
+                        return await message.reply_text("Wrong format!!\nFormat:\nm: Minutes\nh: Hours\nd: Days")
+                except:
+                    return await message.reply_text("Please specify a valid user or reply to that user's message\nFormat: `/ban @user 2d`")
+
+        # Call ban_user function passing ban_duration parameter
+        msg_text, result = await ban_user(user_id, first_name, admin_id, admin_name, chat_id, None, ban_duration)
+        if result:
+            await message.reply_text(msg_text)
+        else:
+            await message.reply_text(msg_text)
+
     else:
         await message.reply_text("Please specify a valid user or reply to that user's message")
-        return
-        
-    msg_text, result = await ban_user(user_id, first_name, admin_id, admin_name, chat_id, reason)
-    if result:
-        await message.reply_text(msg_text)
-    else:
-        await message.reply_text(msg_text)
-
 
 @app.on_message(filters.command(["unban"]))
 async def unban_command_handler(client, message):
