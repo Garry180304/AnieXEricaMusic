@@ -300,6 +300,8 @@ async def mute_command_handler(client, message):
     else:
         msg_text = "You dont have permission to mute someone"
         return await message.reply_text(m@app.on_message(filters.command(["banlist"]))
+
+                                       
 async def banlist_command_handler(client, message):
     # Fetch ban counts from the database
     c.execute('SELECT * FROM ban_counts')
