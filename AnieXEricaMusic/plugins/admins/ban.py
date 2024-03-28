@@ -280,25 +280,7 @@ async def unban_command_handler(client, message):
 
 
 
-@app.on_message(filters.command(["banlist"]))
-async def banlist_command_handler(client, message):
-    # Fetch ban counts from the database
-    c.execute('SELECT * FROM ban_counts')
-    rows = c.fetchall()
 
-    if not rows:
-        await message.reply_text("There are no bans recorded.")
-        return
-
-    ban_list = "Ban List:\n"
-    for row in rows:
-        admin_id = row[0]
-        bans = row[1]
-        admin_mention = f"<a href='tg://user?id={admin_id}'>{admin_id}</a>"
-        ban_list += f"{admin_mention}: {bans} bans\n"
-
-    # Send the ban list as a message
-    await message.reply_text(ban_list)
     
     
 
@@ -317,7 +299,38 @@ async def mute_command_handler(client, message):
             return await message.reply_text(msg_text)
     else:
         msg_text = "You dont have permission to mute someone"
-        return await message.reply_text(msg_text)
+        return await message.reply_text(m@app.on_message(filters.command(["banlist"]))
+async def banlist_command_handler(client, message):
+    # Fetch ban counts from the database
+    c.execute('SELECT * FROM ban_counts')
+    rows = c.fetchall()
+
+    if not rows:
+        await message.reply_text("There are no bans recorded.")
+        return
+
+    ban_list = "Ban List:\n"
+    for row in rows:
+        admin_id = row[0]
+        bans = row[1]
+        admin = await app.get_users(admin_id)
+        admin_name = admin.first_name if admin else "Unknown User"
+        admin_mention = f"{admin_name} ({admin_id})"
+        
+        ban_list += f"{admin_mention} Banned:\n"
+        
+        # Fetch banned users from the database
+        c.execute('SELECT * FROM bans WHERE admin_id=?', (admin_id,))
+        banned_users = c.fetchall()
+        
+        for banned_user in banned_users:
+            banned_user_id = banned_user[1]
+            banned_user_obj = await app.get_users(banned_user_id)
+            banned_user_name = banned_user_obj.first_name if banned_user_obj else "Unknown User"
+            ban_list += f"{banned_user_name} ({banned_user_id})\n"
+
+    # Send the ban list as a message
+    await message.reply_text(ban_list)sg_text)
 
     # Extract the user ID from the command or reply
     if len(message.command) > 1:
