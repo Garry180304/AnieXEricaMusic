@@ -18,9 +18,8 @@ conn = sqlite3.connect('ban_counts.db')
 c = conn.cursor()
 
 # Create table to store ban counts if not exists
-c.execute('''CREATE TABLE IF NOT EXISTS ban_counts
+c.execute('''CREATE TABLE IF NOT EXISTS bans
              (admin_id INTEGER PRIMARY KEY, bans INTEGER)''')
-conn.commit()
 
 # Class to manage admin ban counts
 class AdminManager:
