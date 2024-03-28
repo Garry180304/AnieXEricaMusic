@@ -299,8 +299,45 @@ async def mute_command_handler(client, message):
             return await message.reply_text(msg_text)
     else:
         msg_text = "You dont have permission to mute someone"
-        return await message.reply_text(m@app.on_message(filters.command(["banlist"]))
-                                        
+        return await message.reply_text(msg_text)
+
+    # Extract the user ID from the command or reply
+    if len(message.command) > 1:
+        if message.reply_to_message:
+            user_id = message.reply_to_message.from_user.id
+            first_name = message.reply_to_message.from_user.first_name
+            reason = message.text.split(None, 1)[1]
+        else:
+            try:
+                user_id = int(message.command[1])
+                first_name = "User"
+            except:
+                user_obj = await get_userid_from_username(message.command[1])
+                if user_obj == None:
+                    return await message.reply_text("I can't find that user")
+                user_id = user_obj[0]
+                first_name = user_obj[1]
+
+            try:
+                reason = message.text.partition(message.command[1])[2]
+            except:
+                reason = None
+
+    elif message.reply_to_message:
+        user_id = message.reply_to_message.from_user.id
+        first_name = message.reply_to_message.from_user.first_name
+        reason = None
+    else:
+        await message.reply_text("Please specify a valid user or reply to that user's message")
+        return
+    
+    msg_text, result = await mute_user(user_id, first_name, admin_id, admin_name, chat_id, reason)
+    if result == True:
+        await message.reply_text(msg_text)
+           
+    if result == False:
+        await message.reply_text(msg_text)
+
 
 @app.on_message(filters.command(["banlist"]))                                       
 async def banlist_command_handler(client, message):
@@ -333,7 +370,7 @@ async def banlist_command_handler(client, message):
             ban_list += f"{banned_user_name} ({banned_user_id})\n"
 
     # Send the ban list as a message
-    await message.reply_text(ban_list)sg_text)
+    await message.reply_text(ban_list)
 
     # Extract the user ID from the command or reply
     if len(message.command) > 1:
@@ -411,8 +448,6 @@ async def unmute_command_handler(client, message):
         
     msg_text = await unmute_user(user_id, first_name, admin_id, admin_name, chat_id)
     await message.reply_text(msg_text)
-
-
 
 
 
