@@ -19,7 +19,8 @@ def mention(user_id, name, mention=True):
         if name:
             link = f"@{name}"
         else:
-            link = f"@{user_id}"
+            username = message.from_user.username
+            link = f"@{username}" if username else f"User"
     else:
         link = f"{name if name else 'User'}"
     return link
