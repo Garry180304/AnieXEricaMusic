@@ -14,11 +14,11 @@ import datetime
 from AnieXEricaMusic import app
 
 # Function to format user mention
-def mention(user, name, mention=True):
+def mention(user_id, name, mention=True):
     if mention:
-        link = f"[{name}](tg://openmessage?user_id={user})"
+        link = f"[{name}](tg://openmessage?user_id={user_id})"
     else:
-        link = f"[{name}](https://t.me/{user})"
+        link = f"{name}"
     return link
 
 # Function to get user ID from username
