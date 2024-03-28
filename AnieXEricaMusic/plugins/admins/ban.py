@@ -1,4 +1,5 @@
-from pyrogram import filters, enums, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram import filters, enums
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.types import ChatPermissions
 import datetime
 from AnieXEricaMusic import app
