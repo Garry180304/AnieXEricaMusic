@@ -9,9 +9,41 @@ from pyrogram.errors.exceptions.bad_request_400 import (
     UserAdminInvalid,
     BadRequest
 )
-
+import sqlite3
 import datetime
 from AnieXEricaMusic import app
+
+# Connect to SQLite database
+conn = sqlite3.connect('ban_counts.db')
+c = conn.cursor()
+
+# Create table to store ban counts if not exists
+c.execute('''CREATE TABLE IF NOT EXISTS ban_counts
+             (admin_id INTEGER PRIMARY KEY, bans INTEGER)''')
+conn.commit()
+
+# Class to manage admin ban counts
+class AdminManager:
+    def __init__(self):
+        self.ban_counts = {}
+
+    def load_from_database(self):
+        c.execute('SELECT * FROM ban_counts')
+        rows = c.fetchall()
+        for row in rows:
+            self.ban_counts[row[0]] = row[1]
+
+    def get_ban_count(self, admin_id):
+        return self.ban_counts.get(admin_id, 0)
+
+    def increment_ban_count(self, admin_id):
+        self.ban_counts[admin_id] = self.get_ban_count(admin_id) + 1
+        c.execute('REPLACE INTO ban_counts (admin_id, bans) VALUES (?, ?)', (admin_id, self.ban_counts[admin_id]))
+        conn.commit()
+
+# Initialize AdminManager instance
+admin_manager = AdminManager()
+admin_manager.load_from_database()
 
 # Function to format user mention
 def mention(user_id, name, mention=True):
@@ -55,6 +87,7 @@ async def ban_user(user_id, first_name, admin_id, admin_name, chat_id, reason, t
     admin_mention = mention(admin_id, admin_name)
 
     msg_text += f"{user_mention} was banned by {admin_mention}\n"
+    admin_manager.increment_ban_count(admin_id)  # Increment ban count for admin
     
     if reason:
         msg_text += f"Reason: `{reason}`\n"
@@ -247,6 +280,28 @@ async def unban_command_handler(client, message):
 
 
 
+@app.on_message(filters.command(["banlist"]))
+async def banlist_command_handler(client, message):
+    # Fetch ban counts from the database
+    c.execute('SELECT * FROM ban_counts')
+    rows = c.fetchall()
+
+    if not rows:
+        await message.reply_text("There are no bans recorded.")
+        return
+
+    ban_list = "Ban List:\n"
+    for row in rows:
+        admin_id = row[0]
+        bans = row[1]
+        admin_mention = f"<a href='tg://user?id={admin_id}'>{admin_id}</a>"
+        ban_list += f"{admin_mention}: {bans} bans\n"
+
+    # Send the ban list as a message
+    await message.reply_text(ban_list, parse_mode="HTML")
+    
+    
+
 @app.on_message(filters.command(["mute"]))
 async def mute_command_handler(client, message):
     chat = message.chat
@@ -362,63 +417,48 @@ async def tmute_command_handler(client, message):
         msg_text = "You dont have permission to mute someone"
         return await message.reply_text(msg_text)
 
-    # Extract the user ID from the command or reply
-    if len(message.command) > 1:
-        if message.reply_to_message:
-            user_id = message.reply_to_message.from_user.id
-            first_name = message.reply_to_message.from_user.first_name
-            time = message.text.split(None, 1)[1]
-
-            try:
-                time_amount = time.split(time[-1])[0]
-                time_amount = int(time_amount)
-            except:
-                return await message.reply_text("wrong format!!\nFormat: `/tmute 2m`")
-
-            if time[-1] == "m":
-                mute_duration = datetime.timedelta(minutes=time_amount)
-            elif time[-1] == "h":
-                mute_duration = datetime.timedelta(hours=time_amount)
-            elif time[-1] == "d":
-                mute_duration = datetime.timedelta(days=time_amount)
-            else:
-                return await message.reply_text("wrong format!!\nFormat:\nm: Minutes\nh: Hours\nd: Days")
-        else:
-            try:
-                user_id = int(message.command[1])
-                first_name = "User"
-            except:
-                user_obj = await get_userid_from_username(message.command[1])
-                if user_obj == None:
-                    return await message.reply_text("I can't find that user")
-                user_id = user_obj[0]
-                first_name = user_obj[1]
-
-            try:
-                time = message.text.partition(message.command[1])[2]
-                try:
-                    time_amount = time.split(time[-1])[0]
-                    time_amount = int(time_amount)
-                except:
-                    return await message.reply_text("wrong format!!\nFormat: `/tmute 2m`")
-
-                if time[-1] == "m":
-                    mute_duration = datetime.timedelta(minutes=time_amount)
-                elif time[-1] == "h":
-                    mute_duration = datetime.timedelta(hours=time_amount)
-                elif time[-1] == "d":
-                    mute_duration = datetime.timedelta(days=time_amount)
-                else:
-                    return await message.reply_text("wrong format!!\nFormat:\nm: Minutes\nh: Hours\nd: Days")
-            except:
-                return await message.reply_text("Please specify a valid user or reply to that user's message\nFormat: `/tmute @user 2m`")
-
-    else:
-        await message.reply_text("Please specify a valid user or reply to that user's message\nFormat: /tmute <username> <time>")
+    # Extract the user ID and mute duration from the command
+    if len(message.command) < 3:
+        await message.reply_text("Please specify a valid user and mute duration\nFormat: /tmute <username> <time>")
         return
-    
+
+    # Parse mute duration
+    time = message.command[2]
+    try:
+        time_amount = int(time[:-1])
+        time_unit = time[-1]
+    except ValueError:
+        await message.reply_text("Invalid time format. Please specify the mute duration in minutes (m), hours (h), or days (d).")
+        return
+
+    if time_unit == 'm':
+        mute_duration = datetime.timedelta(minutes=time_amount)
+    elif time_unit == 'h':
+        mute_duration = datetime.timedelta(hours=time_amount)
+    elif time_unit == 'd':
+        mute_duration = datetime.timedelta(days=time_amount)
+    else:
+        await message.reply_text("Invalid time unit. Please use 'm' for minutes, 'h' for hours, or 'd' for days.")
+        return
+
+    # Extract the user ID from the command or reply
+    if message.reply_to_message:
+        user_id = message.reply_to_message.from_user.id
+        first_name = message.reply_to_message.from_user.first_name
+    else:
+        try:
+            user_obj = await get_userid_from_username(message.command[1])
+            if user_obj is None:
+                return await message.reply_text("I can't find that user")
+            user_id = user_obj[0]
+            first_name = user_obj[1]
+        except IndexError:
+            await message.reply_text("Please specify a valid user or reply to that user's message")
+            return
+
+    # Mute the user
     msg_text, result = await mute_user(user_id, first_name, admin_id, admin_name, chat_id, reason=None, time=mute_duration)
-    if result == True:
+    if result:
         await message.reply_text(msg_text)
-    if result == False:
+    else:
         await message.reply_text(msg_text)
