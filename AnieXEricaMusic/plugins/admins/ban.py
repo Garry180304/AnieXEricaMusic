@@ -84,6 +84,8 @@ async def unban_user(user_id, first_name, admin_id, admin_name, chat_id):
 
 async def mute_user(user_id, first_name, admin_id, admin_name, chat_id, reason, time=None):
     try:
+        msg_text = ""  # Initialize msg_text here
+
         if time:
             mute_end_time = datetime.datetime.now() + time
             await app.restrict_chat_member(chat_id, user_id, ChatPermissions(), mute_end_time)
