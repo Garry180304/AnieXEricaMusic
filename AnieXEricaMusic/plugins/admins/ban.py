@@ -16,11 +16,11 @@ from AnieXEricaMusic import app
 # Function to format user mention
 def mention(user_id, name, mention=True):
     if mention:
-        link = f"[{name}](tg://openmessage?user_id={user_id})"
+        link = f"[{name}](tg://user?id={user_id})"
     else:
         link = f"{name}"
     return link
-
+    
 # Function to get user ID from username
 async def get_userid_from_username(username):
     try:
