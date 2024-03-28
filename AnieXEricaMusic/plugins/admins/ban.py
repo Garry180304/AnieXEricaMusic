@@ -17,7 +17,7 @@ from AnieXEricaMusic import app
 def mention(user_id, name, mention=True):
     if mention:
         if name:
-            link = f"@{name}"
+            link = f"{name}"
         else:
             username = message.from_user.username
             link = f"@{username}" if username else f"@{user_id}"
